@@ -1,8 +1,10 @@
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
+
 
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -35,7 +37,7 @@ public class ExcelReader {
              // For each row, iterate through each columns
              Iterator<Cell> cellIterator = row.cellIterator();
              while (cellIterator.hasNext()) {
-                 Cell cell = cellIterator.next();     
+                 Cell cell = cellIterator.next();
                  if(cell.getColumnIndex()==columnNumber){
                 	 switch (cell.getCellType()) {
                      case Cell.CELL_TYPE_STRING:
@@ -43,8 +45,13 @@ public class ExcelReader {
                          break;
                      case Cell.CELL_TYPE_NUMERIC:
                     	// System.out.println(cell.getNumericCellValue()+"N at column Number "+columnNumber);
-                    	 values.add(cell.getNumericCellValue());
+                    	 values.add(cell.getNumericCellValue()); 
                          break;
+                     case Cell.CELL_TYPE_FORMULA:
+                    	 double roundUp = cell.getNumericCellValue();
+                    	 roundUp = (double) Math.round(roundUp * 100) / 100;
+                    	 values.add(roundUp);
+                    	 break;
                      default:
                 	 }
                  }
@@ -52,45 +59,66 @@ public class ExcelReader {
          }
          return values;
 	}
-//	public LinkedList<Double> getColumn(String file, int columnNumber) {
-//		LinkedList<Double> values = new LinkedList<Double>();
-//		try {
-//		    POIFSFileSystem fs = new POIFSFileSystem(new FileInputStream(file));
-//		    HSSFWorkbook wb = new HSSFWorkbook(fs);
-//		    HSSFSheet sheet = wb.getSheetAt(0);
-//		    HSSFRow row;
-//		    HSSFCell cell;
-//
-//		    int rows; // No of rows
-//		    rows = sheet.getPhysicalNumberOfRows();
-//
-//		    int cols = 0; // No of columns
-//		    int tmp = 0;
-//
-//		    // This trick ensures that we get the data properly even if it doesn't start from first few rows
-//		    for(int i = 0; i < 10 || i < rows; i++) {
-//		        row = sheet.getRow(i);
-//		        if(row != null) {
-//		            tmp = sheet.getRow(i).getPhysicalNumberOfCells();
-//		            if(tmp > cols) cols = tmp;
-//		        }
-//		    }
-//		    for(Row r : sheet) {
-//		    	   Cell c = r.getCell(columnNumber);
-//		    	   if(c != null) {
-//		    	      if(c.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-//		    	         values.add(c.getNumericCellValue());
-//		    	      } else if(c.getCellType() == Cell.CELL_TYPE_FORMULA && c.getCachedFormulaResultType() == Cell.CELL_TYPE_NUMERIC) {
-//		    	         values.add(c.getNumericCellValue());
-//		    	      }
-//		    	   }
-//		    	}
-//		   
-//		    
-//		} catch(Exception ioe) {
-//		    ioe.printStackTrace();
-//		}
-//		return values;
-//	}
 	
+	public String getColumnName(String file, int columnNumber) throws IOException{
+		 File myFile = new File(file);
+         FileInputStream fis = new FileInputStream(myFile);
+         LinkedList<Double> values = new LinkedList<Double>();
+         XSSFWorkbook myWorkBook = new XSSFWorkbook (fis);
+         XSSFSheet mySheet = myWorkBook.getSheetAt(0);
+         Iterator<Row> rowIterator = mySheet.iterator();
+         Row row = rowIterator.next();
+         Iterator<Cell> cellIterator = row.cellIterator();
+         while (cellIterator.hasNext()) {
+        	 Cell cell = cellIterator.next();
+             if(cell.getColumnIndex()==columnNumber){
+             	return cell.getStringCellValue();
+                	 }
+              }
+         return "Invalid Column";
+	
+	}
+	public boolean isColNumeric(String file, int columnNumber) throws IOException{
+		 File myFile = new File(file);
+         FileInputStream fis = new FileInputStream(myFile);
+         LinkedList<Double> values = new LinkedList<Double>();
+         XSSFWorkbook myWorkBook = new XSSFWorkbook (fis);
+         XSSFSheet mySheet = myWorkBook.getSheetAt(0);
+         Iterator<Row> rowIterator = mySheet.iterator();
+         rowIterator.next();
+             Row row = rowIterator.next();
+             Iterator<Cell> cellIterator = row.cellIterator();
+             while (cellIterator.hasNext()) {
+                 Cell cell = cellIterator.next();
+                 if(cell.getColumnIndex()==columnNumber){
+                	 switch (cell.getCellType()) {
+                	 case Cell.CELL_TYPE_FORMULA:
+                		 return true;
+                     case Cell.CELL_TYPE_STRING:
+                    	return false;
+                     case Cell.CELL_TYPE_NUMERIC:
+                    	return true;
+                     default:
+                	 }
+                 }
+             }
+         return false;
+	}
+	public int getColCount(String file) throws IOException{
+		File myFile = new File(file);
+        FileInputStream fis = new FileInputStream(myFile);
+        LinkedList<Double> values = new LinkedList<Double>();
+        XSSFWorkbook myWorkBook = new XSSFWorkbook (fis);
+        XSSFSheet mySheet = myWorkBook.getSheetAt(0);
+        Iterator<Row> rowIterator = mySheet.iterator();
+        rowIterator.next();
+        int count = 0;
+            Row row = rowIterator.next();
+            Iterator<Cell> cellIterator = row.cellIterator();
+            while (cellIterator.hasNext()) {
+            	count++;
+                Cell cell = cellIterator.next();
+            }
+        return count;
+	}
 }

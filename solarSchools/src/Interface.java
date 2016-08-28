@@ -9,6 +9,7 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 public class Interface extends JFrame implements ActionListener{
 	ButtonInterface analysisButs;
+	AnalysisInterface analInt;
 	String excelPath;
 	public Interface(){
 		super("Dashboard");
@@ -18,10 +19,16 @@ public class Interface extends JFrame implements ActionListener{
 	    setVisible(true);	
 	}
 	public void addFeatures(){
+		JTabbedPane tabbedPane = new JTabbedPane();
 		analysisButs = new ButtonInterface();
-		add(analysisButs.getPicturePanel());
+		analInt = new AnalysisInterface();
+		//add(analysisButs.getPicturePanel());
+		tabbedPane.addTab("Map", analysisButs.getPicturePanel());
+		tabbedPane.addTab("Quantitative", analInt.getPanel());
+		add(tabbedPane);
 		analysisButs.getStartAnal().addActionListener(this);
 		analysisButs.getReadExcel().addActionListener(this);
+		analInt.getStart().addActionListener(this);
 	}
 	public static void main(String[] args){
 		new Interface();
@@ -44,7 +51,7 @@ public class Interface extends JFrame implements ActionListener{
 				  System.out.println("No Selection ");
 			  }
 		  }
-		if(e.getSource()==analysisButs.getStartAnal()){
+		if(e.getSource()==analInt.getStart()){
 			if(excelPath==null){
 				JOptionPane.showMessageDialog(null, "No excel selected");
 				return;

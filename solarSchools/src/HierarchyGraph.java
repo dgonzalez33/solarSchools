@@ -1,11 +1,14 @@
 import java.awt.Desktop;
+import java.util.Arrays;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 
 
 public class HierarchyGraph {
+	int identifier;
 	public HierarchyGraph(String filePath){
+		identifier = 0;
 		createGraphFile(filePath,"pdf");
 	}
 	private void createGraphFile(String filePath, String type){
@@ -23,15 +26,26 @@ public class HierarchyGraph {
 	}
 	private GraphViz createGraphViz(String filePath){
 		GraphViz graph = new GraphViz();
-		Quantitative analysis = new Quantitative();
+		StatsWork analysis = new StatsWork();
 		graph.addln(graph.start_unDirectionalGraph());
-		LinkedList<Double> costList;
-		LinkedList<Double> capList;
-		LinkedList<Double> prodList;
+		ExcelReader excel = new ExcelReader();
 		try{
-			costList = excelReader(filePath,8);
-			capList = excelReader(filePath,9);
-			prodList = excelReader(filePath,10);
+			graph.addln("splines=line;");
+			for(int i = 0; i < excel.getColCount(filePath); i++){
+				System.out.println(excel.getColumnName(filePath, i));
+				if(excel.isColNumeric(filePath, i)){
+					LinkedList<Double> colList = excel.getColumn(filePath,i);
+					double[] colArray = listToArray(colList);
+					colArray = Arrays.stream(colArray).distinct().toArray();
+					Arrays.sort(colArray);
+					String colName = excel.getColumnName(filePath , i);
+					graph.addln("subgraph \""+colName+"\"{ ");
+					firstLayer(graph, colName, colArray);
+					secondLayer(graph, colArray);
+					graph.addln("}");
+					}
+				identifier++;
+			}
 		}
 		catch(IOException e){
 			System.out.println(":/");
@@ -40,49 +54,47 @@ public class HierarchyGraph {
 			return graph;
 		}
 //		graph.addln("{ rank=same, \"Cost\", \"Capacity\", \"Production\" }");
-		System.out.println("here");
-		addNodesToGraph(graph,"Cost",Double.toString(analysis.correlation(costList, capList)));
-		addNodesToGraph(graph,"Cost",Double.toString(analysis.correlation(costList, prodList)));
-		addNodesToGraph(graph,"Capacity",Double.toString(analysis.correlation(costList, capList)));
-		addNodesToGraph(graph,"Capacity",Double.toString(analysis.correlation(prodList, capList)));
-		addNodesToGraph(graph,"Production",Double.toString(analysis.correlation(costList, prodList)));
-		addNodesToGraph(graph,"Production",Double.toString(analysis.correlation(capList, prodList)));
+		
 		graph.addln(graph.end_graph());
-		System.out.println(graph.getDotSource());//testing purposes
+		//System.out.println(graph.getDotSource());//testing purposes
 		graph.increaseDpi();   // 106 dpi from java api
 		return graph;
 	}
+	private void firstLayer(GraphViz graph, String source, double[] column){
+		addNodesToGraph(graph, source, Double.toString(column[0]) );
+		double mid = ( column[0] + column[column.length-1] ) / 2;
+		addNodesToGraph(graph, source, Double.toString(mid) );
+		addNodesToGraph(graph, source, Double.toString(column[column.length-1]) );
 
-	private GraphViz addNodesToGraph(GraphViz graph, String sourceName, String targetName){
+	}
+	
+	private void secondLayer(GraphViz graph, double[] column){
+		
+		for(int i = 1; i<4 && i<column.length; i++){
+			addNodesToGraph(graph, Double.toString(column[0]), Double.toString(column[i]) );
+			double mid = ( column[0] + column[column.length-1] ) / 2;
+			addNodesToGraph(graph, Double.toString(mid),Double.toString(column[((column.length-1) / 2) + i]));
+			addNodesToGraph(graph, Double.toString(column[column.length-1]), Double.toString(column[column.length-5+i]) );
+
+		}
+	}
+	private void addNodesToGraph(GraphViz graph, String sourceName, String targetName){
 		if(targetName!=null){
-			graph.addln("\""+sourceName+"\""+"--"+"\""+targetName+"\"");
+			graph.addln("\""+sourceName+""+identifier+"\""+"--"+"\""+targetName+""+identifier+"\"");
+			graph.addln("\""+targetName+""+identifier+"\""+"[label=\""+targetName+"\"]");
+			graph.addln("\""+sourceName+""+identifier+"\""+"[label=\""+sourceName+"\"]");
 		}
 		else{
-			graph.addln("\"''+sourceName+\"");
+			graph.addln("\""+sourceName+""+identifier+"\"");
+			graph.addln("\""+sourceName+""+identifier+"\""+"[label=\""+sourceName+"\"]");
 		}
-		return graph;
 	}
-	  public LinkedList<Double> excelReader(String filePath, int columnNumber) throws IOException{
-		  ExcelReader excel = new ExcelReader();
-		  return excel.getColumn(filePath, columnNumber);
-	  }
-	/*public org.w3c.dom.Element getXmlRoot(String filePath){
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		DocumentBuilder builder = null;
-		try {
-			builder = factory.newDocumentBuilder();
-		} catch (ParserConfigurationException e) {
-			System.out.println("Couldnt start docment builder");
+	private double[] listToArray(LinkedList<Double> column){
+		double[] array = new double[column.size()];
+		for(int i = 0; i<array.length;i++){
+			array[i] = column.get(i);
 		}
-		org.w3c.dom.Document document = null;
-		try {
-			document = builder.parse(new File(filePath));
-		} catch (SAXException | IOException e) {
-			e.printStackTrace();
-		}
-		return document.getDocumentElement();
-	}*/
-
-
+		return array;
+	}
 }
 
